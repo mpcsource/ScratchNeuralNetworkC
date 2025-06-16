@@ -1,4 +1,4 @@
-#include "model.h"
+#include "model.cuh"
 
 Model modelCreate(int loss_type) {
     Model model;
@@ -44,7 +44,8 @@ void modelBackward(Model* model, Matrix* labels, float learning_rate) {
     //Layer* output_layer = &model->layers[model->layers_amount-1];
     Layer* output_layer = modelGetLayer(model, model->layers_amount-1);
     Matrix dloss = matrixSub(&output_layer->a, labels);
-    Matrix doutput = matrixDot(&dloss, &output_layer->da);
+    Matrix doutput = matrixCreate(1, 1, 0, DEVICE_ONLY);
+    matrixDot(&dloss, &output_layer->da, &doutput);
 
     output_layer->dz = doutput;
     layerBackward(output_layer, learning_rate);
@@ -57,7 +58,7 @@ void modelBackward(Model* model, Matrix* labels, float learning_rate) {
 
         Matrix dh = next_layer->weights;
         dh = matrixT(&dh);
-        dh = matrixDot(&dh, &next_layer->dz);
+        matrixDot(&dh, &next_layer->dz, &dh);
         dh = matrixMul(&dh, &layer->da);
 
         layer->dz = dh;

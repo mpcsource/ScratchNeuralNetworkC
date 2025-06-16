@@ -1,4 +1,4 @@
-#include "layer.h"
+#include "layer.cuh"
 
 #define MSE_LOSS 0
 

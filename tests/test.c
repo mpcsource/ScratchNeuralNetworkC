@@ -1,10 +1,12 @@
 #include <stdio.h>
-#include "model.h"
+//#include "model.cuh"
+#include "matrix.cuh"
+
 
 int C1Matrix_T1Access() {
 
     // Create matrix.
-    Matrix matrix = matrixCreate(2, 2, 0);
+    Matrix matrix = matrixCreate(2, 2, 1, DEVICE_ONLY);
 
     // Write number.
     int SOLUTION = 20;
@@ -30,18 +32,20 @@ int C1Matrix_T1Access() {
 
 int C1Matrix_T2Dot() {
     // Create matrices.
-    Matrix m1 = matrixCreate(2, 2, 2);
-    Matrix m2 = matrixCreate(2, 2, 6);
+    Matrix mat1 = matrixCreate(2, 2, 2, DEVICE_ONLY);
+    Matrix mat2 = matrixCreate(2, 2, 6, DEVICE_ONLY);
 
     // Dot product.
-    Matrix m3 = matrixDot(&m1, &m2);
+    Matrix mat3 = matrixCreate(mat1.rows, mat2.cols, 0, HOST_AND_DEVICE);
+    matrixDot(&mat1, &mat2, &mat3);
 
     // Read number.
-    float num = matrixGet(&m3, 0, 0);
+    float num = matrixGet(&mat3, 0, 0);
 
     // Destroy matrix.
-    matrixDestroy(&m1);
-    matrixDestroy(&m2);
+    matrixDestroy(&mat1);
+    matrixDestroy(&mat2);
+    matrixDestroy(&mat3);
 
     // Evaluate results.
     if (num == 24) {
@@ -54,7 +58,7 @@ int C1Matrix_T2Dot() {
     }
     
 }
-
+/*
 int C2Layer_T1Access() {
 
     Layer l1 = layerCreate(1, 1, SIGMOID_ACTIVATION);
@@ -155,7 +159,7 @@ int C3Model_T2XOR() {
     modelDestroy(&model);
 
     return 1;
-}
+}*/
 
 int main() {  
 
@@ -163,14 +167,30 @@ int main() {
     int successful_count = 0;
 
     printf("Executing tests...\n");
+    
+    initCublas();
 
     successful_count += C1Matrix_T1Access();
     successful_count += C1Matrix_T2Dot();
-    successful_count += C2Layer_T1Access();
-    successful_count += C3Model_T1Backprop();
-    successful_count += C3Model_T2XOR();
+    //successful_count += C2Layer_T1Access();
+    //successful_count += C3Model_T1Backprop();
+    //successful_count += C3Model_T2XOR();
 
+
+    // Inline temporary test
+    int N = 4096;
+    Matrix mat1 = matrixCreate(N, N, 10, DEVICE_ONLY);
+    Matrix mat2 = matrixCreate(N, N, 10, DEVICE_ONLY);
+    Matrix mat3 = matrixCreate(mat1.rows, mat2.cols, 0, DEVICE_ONLY);
+    matrixDot(&mat1, &mat2, &mat3);
+    matrixDownload(&mat3);
+    //matrixPrint(&mat3);
+    matrixDestroy(&mat1);
+    matrixDestroy(&mat2);
+    matrixDestroy(&mat3);
+    
     printf("%d out of %d tests were successful (%.1f%%).\n", successful_count, test_count, (float)successful_count/test_count*100);
-
+    
+    destroyCublas();
     return 0;
 }

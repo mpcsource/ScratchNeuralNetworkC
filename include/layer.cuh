@@ -1,4 +1,4 @@
-#include "matrix.h"
+#include "matrix.cuh"
 
 #define SIGMOID_ACTIVATION 0
 #define LINEAR_ACTIVATION 1

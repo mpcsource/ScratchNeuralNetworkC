@@ -1,18 +1,18 @@
-#include "layer.h"
+#include "layer.cuh"
 
 Layer layerCreate(int nin, int nout, int activation) {
     Layer layer;
 
-    layer.weights = matrixCreate(nout, nin, 1);
+    layer.weights = matrixCreate(nout, nin, 1, DEVICE_ONLY);
     for(int i = 0; i < layer.weights.cols*layer.weights.rows; i++)
         layer.weights.data[i] = ((float)rand() / RAND_MAX - 0.5f) * 2 * 0.1;
-    layer.biases = matrixCreate(nout, 1, 0);
+    layer.biases = matrixCreate(nout, 1, 0, DEVICE_ONLY);
     layer.activation = activation;
 
-    layer.a = matrixCreate(nout, 1, 0);
-    layer.z = matrixCreate(nout, 1, 0);
-    layer.da = matrixCreate(nout, 1, 0);
-    layer.dz = matrixCreate(nout, 1, 0);
+    layer.a = matrixCreate(nout, 1, 0, DEVICE_ONLY);
+    layer.z = matrixCreate(nout, 1, 0, DEVICE_ONLY);
+    layer.da = matrixCreate(nout, 1, 0, DEVICE_ONLY);
+    layer.dz = matrixCreate(nout, 1, 0, DEVICE_ONLY);
 
     return layer;
 }
@@ -20,8 +20,10 @@ Layer layerCreate(int nin, int nout, int activation) {
 void layerForward(Layer* layer, Matrix* input) {
     layer->input = matrixCopy(input);
     
-    Matrix wx = matrixDot(&layer->weights, input);
-    Matrix z = matrixAdd(&wx, &layer->biases);
+    Matrix wx = matrixCreate(1, 1, 0, DEVICE_ONLY);
+    matrixDot(&layer->weights, input, &wx);
+    Matrix z = matrixCreate(wx.rows, wx.cols, 0, DEVICE_ONLY);
+    matrixAdd(&wx, &layer->biases, &z);
 
     layer->z = z;
     layerApplyActivation(layer);
@@ -46,7 +48,7 @@ void layerApplyActivation(Layer* layer) {
             //layer->a = layer->z;
             matrixDestroy(&layer->a);
             layer->a = matrixCopy(&layer->z);
-            layer->da = matrixCreate(layer->z.rows, layer->z.cols, 0);
+            layer->da = matrixCreate(layer->z.rows, layer->z.cols, 0, DEVICE_ONLY);
             break;
         }
     }
@@ -73,7 +75,8 @@ void layerApplyActivationDerivative(Layer* layer) {
 
 void layerBackward(Layer* layer, float learning_rate) {
     Matrix input_transposed = matrixT(&layer->input);
-    Matrix grad_weights = matrixDot(&layer->dz, &input_transposed);
+    Matrix grad_weights = matrixCreate(1, 1, 0, DEVICE_ONLY);
+    matrixDot(&layer->dz, &input_transposed, &grad_weights);
     Matrix grad_biases = layer->dz;
 
     grad_weights = matrixMulf(&grad_weights, learning_rate);
